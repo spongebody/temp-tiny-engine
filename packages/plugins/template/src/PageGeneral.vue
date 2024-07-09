@@ -3,7 +3,7 @@
     <tiny-form
       ref="generalForm"
       :model="pageSettingState.currentPageData"
-      :rules="isFolder ? folderRules : pageRules"
+      :rules="templateRules"
       label-width="120px"
       validate-type="text"
       :inline-message="true"
@@ -11,55 +11,31 @@
       label-position="left"
       class="general-config-form"
     >
-      <tiny-form-item v-if="!isFolder" prop="group" label="选择页面类型" class="form-item-page-type">
+      <tiny-form-item prop="group" label="新增" class="form-item-page-type">
         <tiny-radio v-model="pageSettingState.currentPageData.group" class="page-type-radio" label="staticPages">
-          静态页面
+          模板类别
         </tiny-radio>
         <tiny-radio v-model="pageSettingState.currentPageData.group" class="page-type-radio" label="publicPages">
-          公共页面
+          模板实例
         </tiny-radio>
       </tiny-form-item>
-      <tiny-form-item prop="name" :label="`${isFolder ? '文件夹' : '页面'}ID`">
-        <tiny-input
-          v-model="pageSettingState.currentPageData.name"
-          :placeholder="`请设置${isFolder ? '文件夹' : '页面'}ID`"
-        ></tiny-input>
+      <tiny-form-item prop="name" label="名称">
+        <tiny-input v-model="pageSettingState.currentPageData.name" placeholder="请输入名称"></tiny-input>
       </tiny-form-item>
 
-      <tiny-form-item
-        v-if="pageSettingState.currentPageData.group !== 'publicPages'"
-        label="选择父文件夹"
-        prop="parentId"
-      >
+      <tiny-form-item label="选择父模板类别" prop="parentId">
         <tiny-select
           v-model="pageSettingState.currentPageData.parentId"
           value-field="id"
           render-type="tree"
           :tree-op="treeFolderOp"
           text-field="name"
-          placeholder="请选择父文件夹"
+          placeholder="请选择父模板类型"
           popper-class="parent-fold-select-dropdown"
           @change="changeParentForderId"
         ></tiny-select>
       </tiny-form-item>
-
-      <tiny-form-item label="路由" prop="route">
-        <tiny-input v-model="pageSettingState.currentPageData.route" placeholder="请设置路由">
-          <template #prepend><span class="input-head">website.com</span></template>
-        </tiny-input>
-        <div class="tip">
-          <svg-button class="icon" name="text-page-link"></svg-button>
-          <span class="text" v-if="!pageSettingState.currentPageData.route">路由将以website.com开头</span>
-          <span class="route-text" v-else>
-            <span class="text">website.com/</span>
-            <span class="text-dim">{{ currentRoute }}</span>
-          </span>
-        </div>
-      </tiny-form-item>
     </tiny-form>
-    <page-home
-      v-if="!isFolder && !pageSettingState.isNew && pageSettingState.currentPageData.group !== 'public'"
-    ></page-home>
   </div>
 </template>
 
@@ -67,18 +43,18 @@
 import { ref, computed, watchEffect } from 'vue'
 import { Form, FormItem, Input, Select, Radio } from '@opentiny/vue'
 import { usePage } from '@opentiny/tiny-engine-controller'
-import { REGEXP_PAGE_NAME, REGEXP_FOLDER_NAME, REGEXP_ROUTE } from '@opentiny/tiny-engine-controller/js/verification'
+// import { REGEXP_PAGE_NAME, REGEXP_FOLDER_NAME, REGEXP_ROUTE } from '@opentiny/tiny-engine-controller/js/verification'
 import { SvgButton } from '@opentiny/tiny-engine-common'
 import PageHome from './PageHome.vue'
 
 export default {
   components: {
-    SvgButton,
+    // SvgButton,
     TinyForm: Form,
     TinyFormItem: FormItem,
     TinyInput: Input,
     TinySelect: Select,
-    PageHome,
+    // PageHome,
     TinyRadio: Radio
   },
   props: {
@@ -119,48 +95,18 @@ export default {
       return route
     })
 
-    // 新建页面/更新页面校验规则
-    const pageRules = {
+    // 新建模板类别/实例校验规则
+    const templateRules = {
       name: [
-        { required: true, message: '请输入页面 ID' },
-        {
-          pattern: REGEXP_PAGE_NAME,
-          message: '只允许包含英文字母，且为大写开头驼峰格式, 如DemoPage'
-        },
-        {
-          min: 3,
-          max: 25,
-          message: '长度在 3 到 25 个字符'
-        }
-      ],
-      route: [
-        {
-          required: true,
-          message: '请输入页面路由'
-        },
-        {
-          pattern: REGEXP_ROUTE,
-          message: '只允许包含英文字母、数字、下横线_、中横线-、正斜杠/, 且以英文字母开头'
-        }
-      ]
-    }
-    const folderRules = {
-      name: [
-        { required: true, message: '请输入页面文件夹 ID' },
+        { required: true, message: '请输入名称' },
         {
           pattern: REGEXP_FOLDER_NAME,
           message: '只允许包含英文字母、数字、下横线_、中横线-, 且以英文字母开头'
         },
         { min: 3, max: 25, message: '长度在 3 到 25 个字符' }
       ],
-      route: [
-        { required: true, message: '请输入页面文件夹路由' },
-        {
-          pattern: REGEXP_ROUTE,
-          message: '只允许包含英文字母、数字、下横线_、中横线-、正斜杠/, 且以英文字母开头'
-        }
-      ],
-      group: [{ required: true, message: '必须选择页面类型' }]
+
+      group: [{ required: true, message: '必须选择新增类型' }]
     }
 
     const getFolders = (pages) => {
@@ -223,8 +169,7 @@ export default {
     }
 
     return {
-      pageRules,
-      folderRules,
+      templateRules,
       pageSettingState,
       generalForm,
       validGeneralForm,

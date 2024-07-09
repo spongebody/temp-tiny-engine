@@ -1,5 +1,5 @@
 <template>
-  <plugin-setting v-if="isShow" :title="state.title" class="pageFolder-plugin-setting">
+  <plugin-setting v-if="isShow" :title="title" class="pageFolder-plugin-setting">
     <template #header>
       <button-group>
         <tiny-button type="primary" @click="saveFolderSetting">保存</tiny-button>
@@ -16,18 +16,14 @@
 
     <template #content>
       <div class="page-setting-content">
-        <tiny-collapse v-model="state.activeName">
-          <tiny-collapse-item title="基本设置" name="folderGeneralRef">
-            <page-general ref="folderGeneralRef" :isFolder="isFolder"></page-general>
-          </tiny-collapse-item>
-        </tiny-collapse>
+        <page-general ref="folderGeneralRef" :isFolder="isFolder"></page-general>
       </div>
     </template>
   </plugin-setting>
 </template>
 
 <script>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { Button, Collapse, CollapseItem } from '@opentiny/vue'
 import { PluginSetting, SvgButton, ButtonGroup } from '@opentiny/tiny-engine-common'
 import { usePage, useModal, useApp, useNotify } from '@opentiny/tiny-engine-controller'
@@ -52,8 +48,8 @@ export const closeFolderSettingPanel = () => {
 export default {
   components: {
     TinyButton: Button,
-    TinyCollapse: Collapse,
-    TinyCollapseItem: CollapseItem,
+    // TinyCollapse: Collapse,
+    // TinyCollapseItem: CollapseItem,
     PluginSetting,
     PageGeneral,
     SvgButton,
@@ -63,18 +59,26 @@ export default {
     isFolder: {
       type: Boolean,
       default: false
+    },
+    operateType: {
+      type: String,
+      default: 'add'
     }
   },
-  setup() {
+  setup(props) {
     const state = reactive({
-      activeName: ['folderGeneralRef'],
-      title: '文件夹设置'
+      activeName: ['folderGeneralRef']
+      // title: '文件夹设置'
     })
     const folderGeneralRef = ref(null)
     const { requestCreatePage, requestUpdatePage, requestDeletePage } = http
     const { appInfoState } = useApp()
     const { pageSettingState, changeTreeData } = usePage()
     const { confirm } = useModal()
+
+    const title = computed(() => {
+      return props.operateType === 'add' ? '新增' : props.operateType === 'edit' ? '编辑' : '生成页面'
+    })
 
     const closeFolderSetting = () => {
       if (isEqual(pageSettingState.currentPageData, pageSettingState.currentPageDataCopy)) {
@@ -197,7 +201,8 @@ export default {
       isShow,
       state,
       pageSettingState,
-      closeFolderSetting
+      closeFolderSetting,
+      title
     }
   }
 }

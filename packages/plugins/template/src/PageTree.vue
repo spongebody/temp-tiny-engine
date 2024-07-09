@@ -3,41 +3,68 @@
     <tiny-search
       v-model="state.pageSearchValue"
       clearable
-      placeholder="搜索页面"
+      placeholder="搜索模板"
       @update:modelValue="searchPageData"
     ></tiny-search>
   </div>
 
-  <tiny-collapse v-model="state.collapseValue" class="page-manage-collapse lowcode-scrollbar">
-    <tiny-collapse-item v-for="(groupItem, index) in pageSettingState.pages" :key="index" :name="groupItem.groupId">
-      <template #title>
-        <span class="title">{{ groupItem.groupName }}</span>
+  <div class="tree-container app-manage-tree">
+    <tiny-tree
+      ref="treeRef"
+      :data="treeData"
+      node-key="id"
+      highlight-current
+      current-node-key="1-1"
+      :filter-node-method="filterPageTreeData"
+      :expand-on-click-node="false"
+      :shrink-icon="shrinkIcon"
+      :expand-icon="expandIcon"
+      @current-change="currentChange"
+      default-expand-all
+    >
+      <template #operation="{ node }">
+        <div style="width: 80px; text-align: right">
+          <tiny-dropdown size="mini" trigger="click" :show-icon="false">
+            <SvgIcon name="setting" class="setting"></SvgIcon>
+            <template #dropdown>
+              <tiny-dropdown-menu popper-class="my-class">
+                <tiny-dropdown-item label="老友粉"></tiny-dropdown-item>
+                <tiny-dropdown-item>黄金糕</tiny-dropdown-item>
+                <tiny-dropdown-item>狮子头</tiny-dropdown-item>
+                <tiny-dropdown-item>螺蛳粉</tiny-dropdown-item>
+                <tiny-dropdown-item disabled>双皮奶</tiny-dropdown-item>
+                <tiny-dropdown-item>蚵仔煎</tiny-dropdown-item>
+              </tiny-dropdown-menu>
+            </template>
+          </tiny-dropdown>
+        </div>
       </template>
-      <div class="app-manage-tree">
-        <tiny-tree
-          :ref="getPageTreeRefs"
-          :key="pageSettingState.pageTreeKey"
-          :data="groupItem.data"
-          :props="{
-            children: 'children',
-            label: 'name'
-          }"
-          default-expand-all
-          :filter-node-method="filterPageTreeData"
-          :render-content="renderContent"
-          :expand-on-click-node="false"
-          :shrink-icon="shrinkIcon"
-          :expand-icon="expandIcon"
-          node-key="id"
-        ></tiny-tree>
-      </div>
-    </tiny-collapse-item>
-  </tiny-collapse>
+    </tiny-tree>
+  </div>
+
+  <div
+    v-if="showDropDown"
+    class="drop-down-menu"
+    ref="dropdownMenuRef"
+    :style="{ top: dropDownPosition.y + 'px', left: dropDownPosition.x + 'px' }"
+  >
+    <ul>
+      <li @mouseover="hover(true, $event)" @mouseleave="hover(false, $event)" @click="editPage(node)">编辑</li>
+      <li @mouseover="hover(true, $event)" @mouseleave="hover(false, $event)" @click="deletePage(node)">删除</li>
+      <li @mouseover="hover(true, $event)" @mouseleave="hover(false, $event)" @click="generatePage(node)">生成页面</li>
+    </ul>
+  </div>
 </template>
 
 <script lang="jsx">
-import { reactive, ref, watchEffect, nextTick } from 'vue'
+import { reactive, ref, watchEffect, nextTick, onMounted, onUnmounted } from 'vue'
 import { Search, Tree, Collapse, CollapseItem } from '@opentiny/vue'
+import {
+  Dropdown as TinyDropdown,
+  DropdownMenu as TinyDropdownMenu,
+  DropdownItem as TinyDropdownItem
+} from '@opentiny/vue'
+console.log(TinyDropdown, TinyDropdownMenu, TinyDropdownItem, 1111)
 import { IconFolderOpened, IconFolderClosed } from '@opentiny/vue-icon'
 import { useCanvas, useApp, useModal, usePage, useBreadcrumb, useLayout } from '@opentiny/tiny-engine-controller'
 import { isEqual } from '@opentiny/vue-renderless/common/object'
@@ -54,7 +81,10 @@ export default {
     TinySearch: Search,
     TinyTree: Tree,
     TinyCollapse: Collapse,
-    TinyCollapseItem: CollapseItem
+    TinyCollapseItem: CollapseItem,
+    TinyDropdown,
+    TinyDropdownMenu,
+    TinyDropdownItem
   },
   props: {
     isFolder: {
@@ -291,14 +321,44 @@ export default {
                 <SvgIcon class="page-edit-icon" name="text-page-home"></SvgIcon>
               </span>
             ) : null}
-            <SvgIcon
-              name="setting"
-              class="setting  page-edit-icon"
-              onMousedown={(e) => openSettingPanel(e, node, isPageLocked)}
-            ></SvgIcon>
+            <SvgIcon name="setting" class="setting  page-edit-icon" onMousedown={(e) => openDropDownMenu(e)}></SvgIcon>
           </span>
         </span>
       )
+    }
+
+    const showDropDown = ref(false)
+    const dropDownPosition = ref({ x: 0, y: 0 })
+    const dropdownMenuRef = ref(null)
+
+    const openDropDownMenu = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      dropDownPosition.value = {
+        x: event.clientX - 20,
+        y: event.clientY - 30
+      }
+      showDropDown.value = true
+      document.addEventListener('click', closeDropDownMenu)
+
+      // onMounted(() => {
+      // 	document.addEventListener('click', closeDropDownMenu);
+      // });
+
+      onUnmounted(() => {
+        document.removeEventListener('click', closeDropDownMenu)
+      })
+    }
+
+    const closeDropDownMenu = (event) => {
+      console.log(1111)
+      if (!dropdownMenuRef.value || !dropdownMenuRef.value.contains(event.target)) {
+        showDropDown.value = false
+      }
+    }
+
+    const hover = (isHovering, event) => {
+      event.target.style.backgroundColor = isHovering ? '#f0f0f0' : ''
     }
 
     watchEffect(() => {
@@ -329,6 +389,47 @@ export default {
 
     const shrinkIcon = <SvgIcon name="text-page-folder" class="folder-icon"></SvgIcon>
 
+    const treeRef = ref()
+    const treeData = ref([
+      {
+        id: '1',
+        label: '数据 1',
+        children: [
+          { id: '1-1', label: '数据 1-1', children: [{ id: '1-1-1', label: '数据 1-1-1' }] },
+          { id: '1-2', label: '数据 1-2' }
+        ]
+      },
+      {
+        id: '2',
+        label: '数据 2',
+        children: [
+          { id: '2-1', label: '数据 2-1' },
+          { id: '2-2', label: '数据 2-2' }
+        ]
+      },
+      {
+        id: '3',
+        label: '数据 3',
+        children: [{ id: '3-1', label: '数据 3-1' }]
+      }
+    ])
+    function getResultById(id) {
+      // 节点数据
+      const data = treeRef.value.getCurrentNode()
+      // 节点对象
+      const node = treeRef.value.getNode(id)
+      // 节点node-key
+      const nodeKey = treeRef.value.getCurrentKey()
+      // 组件内部生成的节点唯一键值
+      const innerKey = treeRef.value.getNodeKey(node)
+      // 整个路径上节点数据的数组
+      const nodePath = treeRef.value.getNodePath(id)
+      console.log('当前高亮节点的信息为：', { data, node, nodeKey, innerKey, nodePath })
+    }
+    // 事件
+    function currentChange(data, _currentNode) {
+      getResultById(data.id)
+    }
     return {
       createPublicPage,
       state,
@@ -342,7 +443,16 @@ export default {
       IconFolderOpened: IconFolderOpened(),
       IconFolderClosed: IconFolderClosed(),
       shrinkIcon,
-      expandIcon
+      expandIcon,
+      showDropDown,
+      dropDownPosition,
+      openDropDownMenu,
+      closeDropDownMenu,
+      hover,
+      dropdownMenuRef,
+      treeRef,
+      treeData,
+      currentChange
     }
   }
 }
@@ -357,14 +467,17 @@ export default {
 .page-manage-collapse {
   height: calc(100% - 95px);
   overflow-y: auto;
+
   .app-manage-public-page {
     position: absolute;
     right: 0;
     cursor: pointer;
+
     svg {
       font-size: 22px;
     }
   }
+
   :deep(.tiny-collapse-item__header) {
     &,
     &.is-active {
@@ -372,10 +485,17 @@ export default {
         border: none;
       }
     }
+
     .title {
       margin-left: 6px;
     }
   }
+}
+
+.tree-container {
+  height: calc(100% - 95px);
+  // padding: 4px 10px;
+  overflow-y: auto;
 }
 
 .app-manage-tree {
@@ -383,39 +503,47 @@ export default {
     margin-right: 10px;
     margin-left: 20px;
   }
-  :deep(.tiny-tree) {
-    background: var(--ti-lowcode-page-manage-tree-node-background-color);
-    color: var(--ti-lowcode-page-manage-tree-color);
 
-    .tiny-tree-node {
-      &:hover {
-        background-color: var(--ti-lowcode-page-manage-page-tree-background-hover-color);
-      }
-      &.is-current,
-      &.is-current .tiny-tree-node__content,
-      &.is-current .tiny-tree-node__content-box {
-        color: var(--ti-lowcode-page-manage-tree-color);
-        background-color: var(--ti-lowcode-page-manage-page-tree-background-active-color);
-        &:hover {
-          background-color: var(--ti-lowcode-page-manage-page-tree-background-hover-color);
-        }
-        & > .tiny-tree-node__content-left {
-          font-weight: 700;
-        }
-      }
-    }
+  :deep(.tiny-tree) {
+    // background: var(--ti-lowcode-page-manage-tree-node-background-color);
+    // color: var(--ti-lowcode-page-manage-tree-color);
+
+    // .tiny-tree-node {
+    // 	&:hover {
+    // 		background-color: var(--ti-lowcode-page-manage-page-tree-background-hover-color);
+    // 	}
+
+    // 	&.is-current,
+    // 	&.is-current .tiny-tree-node__content,
+    // 	&.is-current .tiny-tree-node__content-box {
+    // 		color: var(--ti-lowcode-page-manage-tree-color);
+    // 		background-color: var(--ti-lowcode-page-manage-page-tree-background-active-color);
+
+    // 		&:hover {
+    // 			background-color: var(--ti-lowcode-page-manage-page-tree-background-hover-color);
+    // 		}
+
+    // 		&>.tiny-tree-node__content-left {
+    // 			font-weight: 700;
+    // 		}
+    // 	}
+    // }
+
     .tiny-tree-node__label {
       width: 100%;
       display: flex;
       justify-content: space-between;
       height: 30px;
       line-height: 30px;
+
       .page-edit-icon {
         font-size: 16px;
       }
     }
+
     .tiny-tree-node__content {
       height: 32px;
+
       &::before {
         content: '';
         width: 12px;
@@ -427,10 +555,13 @@ export default {
         background-position: 3px 3px;
         cursor: ns-resize;
         opacity: 0.35;
-        visibility: hidden;
+        // visibility: hidden;
+        visibility: visible;
       }
+
       &:hover {
         border-radius: 0;
+
         .icons {
           .setting {
             display: inline-block;
@@ -442,6 +573,7 @@ export default {
           visibility: visible;
         }
       }
+
       .folder-icon {
         color: var(--ti-lowcode-page-manage-content-tips-color);
       }
@@ -450,14 +582,23 @@ export default {
     .page-name-label {
       display: flex;
       align-items: center;
+
       .icon-page {
         margin-right: -15px;
       }
+
       .label {
         display: inline-block;
         max-width: 160px;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+    }
+
+    .setting {
+      color: var(--ti-lowcode-page-manage-content-tips-color);
+      &:hover {
+        color: var(--ti-lowcode-page-manage-svg-hover-color);
       }
     }
 
@@ -490,6 +631,7 @@ export default {
 
       svg {
         color: var(--ti-lowcode-page-manage-content-tips-color);
+
         &:hover {
           color: var(--ti-lowcode-page-manage-svg-hover-color);
         }
@@ -501,5 +643,28 @@ export default {
       margin-right: 6px;
     }
   }
+}
+
+.drop-down-menu {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ccc;
+  z-index: 100;
+  min-width: 90px;
+}
+
+.drop-down-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.drop-down-menu ul li {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.drop-down-menu ul li:hover {
+  background-color: #f0f0f0;
 }
 </style>

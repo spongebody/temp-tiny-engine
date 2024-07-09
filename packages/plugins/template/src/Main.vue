@@ -3,18 +3,11 @@
     <template #header>
       <link-button :href="docsUrl"></link-button>
       <svg-button
-        class="add-folder-icon"
-        name="add-folder"
-        placement="bottom"
-        tips="新建模板类别"
-        @click="createNewFolder"
-      ></svg-button>
-      <svg-button
-        class="new-page-icon"
-        name="new-page"
+        class="add-template-icon"
+        name="add-template"
         placement="bottom"
         tips="新建模板"
-        @click="createNewPage('staticPages')"
+        @click="createNewFolder"
       ></svg-button>
     </template>
 
@@ -30,7 +23,7 @@
 
   <page-setting :isFolder="state.isFolder" @openNewPage="openNewPage"></page-setting>
 
-  <page-folder-setting :isFolder="state.isFolder"></page-folder-setting>
+  <page-folder-setting :isFolder="state.isFolder" :operateType="state.operateType"></page-folder-setting>
 </template>
 
 <script lang="jsx">
@@ -79,7 +72,8 @@ export default {
     const docsUrl = useHelp().getDocsUrl('page')
 
     const state = reactive({
-      isFolder: false
+      isFolder: false,
+      operateType: 'add'
     })
 
     const createNewPage = (group) => {
